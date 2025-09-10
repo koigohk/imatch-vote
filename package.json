@@ -1,0 +1,10 @@
+{
+  "name": "imatch-vote",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "build": "echo 'nothing to build'"
+  },
+  "engines": { "node": "18.x" }   // or 20.x if you tested it
+}
