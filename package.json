@@ -2,9 +2,16 @@
   "name": "imatch-vote",
   "version": "1.0.0",
   "main": "index.js",
+  "type": "commonjs",
   "scripts": {
     "start": "node index.js",
-    "build": "echo 'nothing to build'"
+    "build": "echo \"nothing to build\""
   },
-  "engines": { "node": "18.x" }   // or 20.x if you tested it
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "dayjs": "^1.11.11",
+    "discord.js": "^14.16.3",
+    "dotenv": "^16.4.5",
+    "googleapis": "^141.0.0"
+  }
 }
