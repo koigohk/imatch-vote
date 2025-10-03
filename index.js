@@ -1454,24 +1454,36 @@ client.on('interactionCreate', async (interaction) => {
   try {
     if (!interaction.isButton()) return;
     if (!(interaction.customId.startsWith('accept_') || interaction.customId.startsWith('decline_'))) return;
+    // Acknowledge immediately to avoid timeout
+    await interaction.deferUpdate().catch(() => {});
+
     const reqKey = interaction.customId.split('_')[1];
     const [requesterId, targetId] = reqKey.split('-');
-    if (interaction.user.id !== targetId) return interaction.reply({ content: '這個按鈕不是給你的。', ephemeral: true });
+    if (interaction.user.id !== targetId) {
+      // Can't send ephemeral in DM; try a follow-up message
+      return interaction.followUp({ content: '這個按鈕不是給你的。', ephemeral: true }).catch(() => {});
+    }
     const guild = interaction.guild;
     const requester = await guild.members.fetch(requesterId).catch(() => null);
-    if (!requester) return interaction.reply({ content: '配對請求發起人已不在伺服器。', ephemeral: true });
-    if (!isRequestActive(requesterId, targetId)) return interaction.reply({ content: '配對請求已過期。', ephemeral: true });
+    if (!requester) {
+      return interaction.editReply({ content: '配對請求發起人已不在伺服器。', components: [] }).catch(() => {});
+    }
+    if (!isRequestActive(requesterId, targetId)) {
+      return interaction.editReply({ content: '配對請求已過期。', components: [] }).catch(() => {});
+    }
     if (interaction.customId.startsWith('decline_')) {
       await clearPendingRequest(requesterId, targetId);
-      await interaction.update({ content: '❌ 你已拒絕了配對請求。', components: [] });
+      await interaction.editReply({ content: '❌ 你已拒絕了配對請求。', components: [] }).catch(() => {});
       await requester.send(`❌ <@${targetId}> 拒絕了你的配對請求。`).catch(() => {});
       return;
     }
     // Accept
     await clearPendingRequest(requesterId, targetId);
-    await interaction.update({ content: '✅ 你已接受了配對請求！', components: [] });
+    await interaction.editReply({ content: '✅ 你已接受了配對請求！', components: [] }).catch(() => {});
     const exist = await findExistingPairRoom(guild, requesterId, targetId);
-    if (exist) return interaction.followUp({ content: `你哋已有配對房：${exist}`, ephemeral: true });
+    if (exist) {
+      return interaction.followUp({ content: `你哋已有配對房：${exist}`, ephemeral: true }).catch(() => {});
+    }
     const ch = await createPrivateRoom(guild, requester, interaction.user);
     rememberPair(requesterId, targetId);
     await incSuccess([requesterId, targetId]).catch(() => {});
