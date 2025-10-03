@@ -12,7 +12,7 @@ const fs = require('node:fs/promises');
 const fssync = require('node:fs');
 
 // =============== ENV =================
-const TOKEN        = (process.env.TOKEN || '').trim();
+const TOKEN        = (process.env.TOKEN || process.env.DISCORD_TOKEN || '').trim();
 const CLIENT_ID    = (process.env.CLIENT_ID || '').trim();
 const GUILD_ID     = (process.env.GUILD_ID || '').trim();
 
@@ -36,8 +36,12 @@ const GS_PRIVATE = (() => {
 })();
 
 // Safety
-if (!TOKEN || !CLIENT_ID || !GUILD_ID) {
-  console.error('❌ Missing TOKEN / CLIENT_ID / GUILD_ID in .env');
+if (!TOKEN || TOKEN.length < 30) {
+  console.error('❌ Missing/invalid TOKEN. Set env TOKEN or DISCORD_TOKEN to a valid bot token (no "Bot " prefix).');
+  process.exit(1);
+}
+if (!CLIENT_ID || !GUILD_ID) {
+  console.error('❌ Missing CLIENT_ID or GUILD_ID in .env');
 }
 if (GS_ENABLED && (!SPREADSHEET_ID || !GS_EMAIL || !GS_PRIVATE)) {
   console.error('❌ Missing Google Sheets credentials/ids in .env');
