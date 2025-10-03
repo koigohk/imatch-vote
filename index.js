@@ -605,9 +605,32 @@ client.once(Events.ClientReady, async (c) => {
 
 // All interactions
 client.on(Events.InteractionCreate, async i => {
+  let autoDeferTimer = null;
   try {
     if (!i.isChatInputCommand()) return;
+    // Auto-defer after 2s to avoid "未受回應" on long ops
+    autoDeferTimer = setTimeout(() => {
+      if (!i.deferred && !i.replied) {
+        i.deferReply({ ephemeral: true }).catch(() => {});
+      }
+    }, 2000);
+
     const name = i.commandName;
+
+    if (name === 'reload-questions') {
+      await i.deferReply({ ephemeral: true });
+      const n = await loadQuestionsFromSheet();
+      await i.editReply(`題庫已載入：${n} 題`);
+      return;
+    }
+
+    if (name === 'results-now') {
+      const state = lastPollByChannel.get(i.channelId);
+      if (!state) return i.reply({ content: '此頻道未找到最近的投票。', ephemeral: true });
+      const { a, b, total, pa, pb } = summarizeVotes(state.votes);
+      await i.reply({ content: `目前結果：A **${a}** (${pa}%) ｜ B **${b}** (${pb}%) ｜ 共 **${total}** 票`, ephemeral: true });
+      return;
+    }
 
     if (name === 'reload-questions') {
       await i.deferReply({ ephemeral: true });
@@ -919,11 +942,18 @@ client.on(Events.InteractionCreate, async i => {
       await i.reply({ content: info, ephemeral: true });
       return;
     }
+
+    // Unknown command fallback to avoid interaction timeout
+    if (!i.deferred && !i.replied) {
+      await i.reply({ content: '指令未被處理。請嘗試重新註冊指令或重啟機器人。', ephemeral: true }).catch(() => {});
+    }
   } catch (err) {
     console.error(err);
     try {
       if (i.isRepliable()) await i.reply({ content: `發生錯誤：${err.message}`, ephemeral: true });
     } catch {}
+  } finally {
+    if (autoDeferTimer) clearTimeout(autoDeferTimer);
   }
 });
 
